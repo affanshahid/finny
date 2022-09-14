@@ -1,0 +1,14 @@
+[package]
+name = "finny"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+chrono = "0.4.22"
+home = "0.5.3"
+lazy_static = "1.4.0"
+regex = "1.6.0"
+rusqlite = { version = "0.28.0", features = ["bundled", "array"] }
+strum_macros = "0.24.3"
