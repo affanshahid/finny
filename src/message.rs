@@ -75,7 +75,7 @@ impl TextMessage {
         let conn = Connection::open(home)?;
         let mut stmt = conn.prepare(&QUERY.replace("{IDS}", &in_param))?;
 
-        let mut msgs = stmt.query_map(
+        let msgs = stmt.query_map(
             params![
                 start.timestamp_nanos() - NSECS_SINCE_2001,
                 (end.timestamp_nanos() - NSECS_SINCE_2001),
@@ -89,11 +89,15 @@ impl TextMessage {
             },
         )?;
 
-        if let Some(err) = msgs.find(|m| m.is_err()) {
-            err?;
+        let mut result = Vec::new();
+        for msg in msgs {
+            match msg {
+                Ok(msg) => result.push(msg),
+                Err(err) => return Err(Error::SqliteError(err)),
+            }
         }
 
-        Ok(msgs.map(|m| m.unwrap()).collect())
+        Ok(result)
     }
 
     fn parse_time_from_century_epoch(century_epoch: i64) -> DateTime<Utc> {
