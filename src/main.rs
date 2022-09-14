@@ -45,8 +45,8 @@ fn main() {
     let args = Args::parse();
     let msgs = TextMessage::fetch(
         &args.contacts.iter().map(|s| &s[..]).collect(),
-        &Utc.ymd(2022, 1, 1).and_hms(0, 0, 0),
-        &Utc.ymd(2022, 12, 15).and_hms(0, 0, 0),
+        &args.start,
+        &args.end,
     )
     .unwrap();
 
