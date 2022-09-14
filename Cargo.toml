@@ -7,8 +7,10 @@ edition = "2021"
 
 [dependencies]
 chrono = "0.4.22"
+chronoutil = "0.2.3"
+clap = { version = "3.2.21", features = ["derive"] }
 home = "0.5.3"
 lazy_static = "1.4.0"
 regex = "1.6.0"
-rusqlite = { version = "0.28.0", features = ["bundled", "array"] }
+rusqlite = { version = "0.28.0", features = ["bundled"] }
 strum_macros = "0.24.3"

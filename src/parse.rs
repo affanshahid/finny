@@ -22,13 +22,16 @@ impl error::Error for Error {}
 
 impl From<ParseFloatError> for Error {
     fn from(error: <f64 as FromStr>::Err) -> Self {
-        Error(error.to_string())
+        Error(format!(
+            "error parsing monetary value: {}",
+            &error.to_string()
+        ))
     }
 }
 
 impl From<ParseError> for Error {
     fn from(error: ParseError) -> Self {
-        Error(error.to_string())
+        Error(format!("error parsing time: {}", &error.to_string()))
     }
 }
 
@@ -75,6 +78,20 @@ lazy_static! {
                 })
             }),
         },
+        Matcher{
+            pattern: Regex::new(r"Acct. (?P<account>.+) debited by (?P<currency>.+) (?P<amount>.+) due to (?P<reason>.+) at (?P<datetime>.+ hrs on .+).Current Balance: .+").unwrap(),
+            factory: Box::new(|captures, msg| {
+                Ok(Record {
+                    message_id: msg.id,
+                    nature: Nature::Debit,
+                    account: captures["account"].to_string(),
+                    currency: captures["currency"].to_string(),
+                    amount: parse_monetary_value(&captures["amount"])?,
+                    source: captures["reason"].to_string(),
+                    time: Local.datetime_from_str(&captures["datetime"], "%H:%M hrs on %d-%m-%Y")?.with_timezone(&Utc)
+                })
+            })
+        }
     ];
 }
 

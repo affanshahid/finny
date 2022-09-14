@@ -54,9 +54,9 @@ impl From<rusqlite::Error> for Error {
 
 impl TextMessage {
     pub fn fetch(
-        source: Vec<&str>,
-        start: DateTime<Utc>,
-        end: DateTime<Utc>,
+        source: &Vec<&str>,
+        start: &DateTime<Utc>,
+        end: &DateTime<Utc>,
     ) -> Result<Vec<TextMessage>, Error> {
         let in_param = String::from("(")
             + &source
