@@ -38,6 +38,10 @@ struct Args {
         default_value_t=Utc::now(),
     )]
     end: DateTime<Utc>,
+
+    /// Sources to filter out
+    #[clap(short, long, value_parser)]
+    filter_sources: Option<Vec<String>>,
 }
 
 fn main() {
@@ -49,6 +53,14 @@ fn main() {
     )
     .unwrap();
 
-    let records = Record::parse_messages(&msgs);
+    let mut records = Record::parse_messages(&msgs);
+
+    if let Some(sources) = args.filter_sources {
+        records = records
+            .into_iter()
+            .filter(|r| !sources.contains(&r.source))
+            .collect()
+    }
+
     println!("{:#?}", records)
 }
