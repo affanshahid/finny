@@ -2,10 +2,12 @@ use chrono::DateTime;
 use chrono::Utc;
 use clap::Parser;
 use message::TextMessage;
+use process::filter_sources;
 use record::Record;
 
 mod message;
 mod parse;
+mod process;
 mod record;
 
 /// Calculate your expenses from messages sent by your bank
@@ -56,10 +58,7 @@ fn main() {
     let mut records = Record::parse_messages(&msgs);
 
     if let Some(sources) = args.filter_sources {
-        records = records
-            .into_iter()
-            .filter(|r| !sources.contains(&r.source))
-            .collect()
+        records = filter_sources(&records, &sources)
     }
 
     println!("{:#?}", records)
