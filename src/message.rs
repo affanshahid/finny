@@ -89,15 +89,7 @@ impl TextMessage {
             },
         )?;
 
-        let mut result = Vec::new();
-        for msg in msgs {
-            match msg {
-                Ok(msg) => result.push(msg),
-                Err(err) => return Err(Error::SqliteError(err)),
-            }
-        }
-
-        Ok(result)
+        Ok(msgs.collect::<Result<Vec<_>, _>>()?)
     }
 
     fn parse_time_from_century_epoch(century_epoch: i64) -> DateTime<Utc> {
