@@ -9,8 +9,11 @@ edition = "2021"
 chrono = "0.4.22"
 chronoutil = "0.2.3"
 clap = { version = "3.2.21", features = ["derive"] }
+comfy-table = "6.1.0"
 home = "0.5.3"
 lazy_static = "1.4.0"
 regex = "1.6.0"
 rusqlite = { version = "0.28.0", features = ["bundled"] }
+rusty-money = { version = "0.4.1", features = ["iso"] }
 strum_macros = "0.24.3"
+tabled = "0.8.0"

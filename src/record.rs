@@ -1,5 +1,7 @@
 use chrono::DateTime;
 use chrono::Utc;
+use rusty_money::iso::Currency;
+use tabled::Tabled;
 
 use crate::message::TextMessage;
 use crate::parse::MATCHERS;
@@ -11,12 +13,12 @@ pub enum Nature {
     Debit,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Tabled)]
 pub struct Record {
     pub message_id: u32,
     pub nature: Nature,
     pub account: String,
-    pub currency: String,
+    pub currency: &'static Currency,
     pub amount: f64,
     pub source: String,
     pub time: DateTime<Utc>,
@@ -36,7 +38,7 @@ impl Record {
                 match (matcher.factory)(matcher.pattern.captures(&msg.text).unwrap(), msg) {
                     Ok(r) => Some(r),
                     Err(err) => {
-                        println!("unable to parse: {}", err);
+                        println!("unable to parse: {}: error: {}", msg.text, err);
                         None
                     }
                 }

@@ -5,10 +5,13 @@ use message::TextMessage;
 use process::filter_sources;
 use record::Record;
 
+use crate::viewer::Viewer;
+
 mod message;
 mod parse;
 mod process;
 mod record;
+mod viewer;
 
 /// Calculate your expenses from messages sent by your bank
 #[derive(Parser, Debug)]
@@ -28,7 +31,7 @@ struct Args {
         short,
         long,
         value_parser=str::parse::<DateTime<Utc>>,
-        default_value_t=chronoutil::shift_months(Utc::now(), -1),
+        default_value_t=chronoutil::shift_months(Utc::now(), -2),
     )]
     start: DateTime<Utc>,
 
@@ -61,5 +64,7 @@ fn main() {
         records = filter_sources(&records, &sources)
     }
 
-    println!("{:#?}", records)
+    let v = Viewer::new(records);
+
+    println!("{}", v);
 }
