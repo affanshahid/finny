@@ -1,5 +1,5 @@
+pub mod matcher;
 pub mod message;
-pub mod parse;
 pub mod process;
 pub mod record;
 pub mod viewer;

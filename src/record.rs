@@ -4,8 +4,8 @@ use rusty_money::iso::Currency;
 use rusty_money::Money;
 use tabled::Tabled;
 
+use crate::matcher::MATCHERS;
 use crate::message::TextMessage;
-use crate::parse::MATCHERS;
 
 #[derive(Debug, strum_macros::Display, Clone)]
 pub enum Nature {
