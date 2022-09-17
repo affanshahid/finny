@@ -1,8 +1,6 @@
 use std::error;
 use std::fmt::Display;
-use std::num::ParseFloatError;
 use std::num::ParseIntError;
-use std::str::FromStr;
 
 use chrono::Local;
 use chrono::NaiveDate;
@@ -13,6 +11,8 @@ use lazy_static::lazy_static;
 use regex::Captures;
 use regex::Regex;
 use rusty_money::iso;
+use rusty_money::Money;
+use rusty_money::MoneyError;
 
 use crate::message::TextMessage;
 use crate::record::Nature;
@@ -23,8 +23,8 @@ pub struct Error(String);
 
 impl error::Error for Error {}
 
-impl From<ParseFloatError> for Error {
-    fn from(error: <f64 as FromStr>::Err) -> Self {
+impl From<MoneyError> for Error {
+    fn from(error: MoneyError) -> Self {
         Error(format!(
             "error parsing monetary value: {}",
             &error.to_string()
@@ -68,8 +68,7 @@ lazy_static! {
                     message_id: msg.id,
                     nature: Nature::Debit,
                     account: captures["account"].to_string(),
-                    currency: iso::PKR,
-                    amount: parse_monetary_value(&captures["amount"])?,
+                    amount: Money::from_str(&captures["amount"], iso::PKR)?,
                     source: captures["location"].trim().to_string(),
                     time: Local.datetime_from_str(&captures["datetime"], "%d-%m-%y %H:%M")?.with_timezone(&Utc),
                 })
@@ -83,8 +82,12 @@ lazy_static! {
                     message_id: msg.id,
                     nature: Nature::Debit,
                     account: captures["card"].to_string(),
-                    currency: iso::find(&captures["currency"]).ok_or(Error("currency not recognized: ".to_string() + &captures["currency"]))?,
-                    amount:  parse_monetary_value(&captures["amount"])?,
+                    amount:  Money::from_str(
+                        &captures["amount"],
+                        iso::find(&captures["currency"]).ok_or(Error(
+                            "currency not recognized: ".to_string() + &captures["currency"],
+                        ))?
+                    )?,
                     source: captures["location"].to_string(),
                     time: Local.datetime_from_str(&captures["datetime"], "%d/%m/%y at %H:%M:%S")?.with_timezone(&Utc)
                 })
@@ -94,13 +97,16 @@ lazy_static! {
             id: "js-credit-card-online-used",
             pattern: Regex::new(r"Dear .+, your JS Bank credit card ending with (?P<card>.+) has been used for (?P<currency>[A-Z]+) (?P<amount>.+) at (?P<location>.+) on (?P<datetime>.+) at (?P<hour>\d+)\.").unwrap(),
             factory: Box::new(|captures, msg| {
-
                 Ok(Record {
                     message_id: msg.id,
                     nature: Nature::Debit,
                     account: captures["card"].to_string(),
-                    currency: iso::find(&captures["currency"]).ok_or(Error("currency not recognized: ".to_string() + &captures["currency"]))?,
-                    amount:  parse_monetary_value(&captures["amount"])?,
+                    amount:  Money::from_str(
+                        &captures["amount"],
+                        iso::find(&captures["currency"]).ok_or(Error(
+                            "currency not recognized: ".to_string() + &captures["currency"],
+                        ))?
+                    )?,
                     source: captures["location"].to_string(),
                     time:  Local
                         .from_local_datetime(
@@ -124,16 +130,16 @@ lazy_static! {
                     message_id: msg.id,
                     nature: Nature::Debit,
                     account: captures["account"].to_string(),
-                    currency: iso::find(&captures["currency"]).ok_or(Error("currency not recognized: ".to_string() + &captures["currency"]))?,
-                    amount: parse_monetary_value(&captures["amount"])?,
+                    amount:  Money::from_str(
+                        &captures["amount"],
+                        iso::find(&captures["currency"]).ok_or(Error(
+                            "currency not recognized: ".to_string() + &captures["currency"],
+                        ))?
+                    )?,
                     source: captures["reason"].to_string(),
                     time: Local.datetime_from_str(&captures["datetime"], "%H:%M hrs on %d-%m-%Y")?.with_timezone(&Utc)
                 })
             })
         }
     ];
-}
-
-fn parse_monetary_value(s: &str) -> Result<f64, ParseFloatError> {
-    s.replace(",", "").parse()
 }

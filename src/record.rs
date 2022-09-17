@@ -1,6 +1,7 @@
 use chrono::DateTime;
 use chrono::Utc;
 use rusty_money::iso::Currency;
+use rusty_money::Money;
 use tabled::Tabled;
 
 use crate::message::TextMessage;
@@ -18,8 +19,7 @@ pub struct Record {
     pub message_id: u32,
     pub nature: Nature,
     pub account: String,
-    pub currency: &'static Currency,
-    pub amount: f64,
+    pub amount: Money<'static, Currency>,
     pub source: String,
     pub time: DateTime<Utc>,
 }
