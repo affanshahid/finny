@@ -23,6 +23,7 @@ order by
     m.date;
 ";
 
+#[derive(Debug)]
 pub struct TextMessage {
     pub id: u32,
     pub text: String,

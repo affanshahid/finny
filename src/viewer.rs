@@ -12,6 +12,7 @@ use comfy_table::ContentArrangement;
 use comfy_table::Row;
 use comfy_table::Table;
 use lazy_static::lazy_static;
+use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 use rusty_money::iso;
 use rusty_money::iso::Currency;
@@ -71,7 +72,7 @@ impl Viewer {
             Cell::new(""),
             Cell::new(""),
             Cell::new("TOTAL")
-                .add_attributes(vec![Attribute::Bold, Attribute::SlowBlink])
+                .add_attributes(vec![Attribute::Bold])
                 .set_alignment(CellAlignment::Right),
             Cell::new(&total).fg(if total.amount().is_sign_positive() {
                 Color::Green
@@ -83,6 +84,7 @@ impl Viewer {
     }
 
     fn normalized_amount(r: &Record) -> Money<'static, Currency> {
+        //FIXME: remove clone when https://github.com/varunsrin/rusty_money/pull/76 is merged
         let mut result = r.amount.clone();
 
         if r.amount.currency() != NORMALIZED_CURRENCY {
@@ -90,12 +92,12 @@ impl Viewer {
                 .get_rate(r.amount.currency(), NORMALIZED_CURRENCY)
                 .unwrap();
 
-            //FIXME: remove clone when https://github.com/varunsrin/rusty_money/pull/76 is merged
             result = rate.convert(result).unwrap()
         }
 
         if let Nature::Debit = r.nature {
-            result = Money::from_decimal(*result.amount(), result.currency());
+            result =
+                Money::from_decimal(result.amount() * Decimal::NEGATIVE_ONE, result.currency());
         }
 
         result

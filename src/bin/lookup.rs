@@ -1,18 +1,12 @@
+use std::collections::HashMap;
+
 use chrono::DateTime;
 use chrono::Utc;
 use clap::Parser;
 use finny::message::TextMessage;
-use finny::process::filter_out_sources;
 use finny::record::Record;
-use finny::viewer::Viewer;
-use lazy_static::lazy_static;
 
-lazy_static! {
-    static ref DEFAULT_EXCLUDE_SOURCES: Vec<String> =
-        vec!["JS Credit Card Bill Pay From IB".to_string()];
-}
-
-/// Calculate your expenses from messages sent by your bank
+/// Inspect messages
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about=None)]
 struct Args {
@@ -43,9 +37,13 @@ struct Args {
     )]
     end: DateTime<Utc>,
 
-    /// Sources to filter out
-    #[clap(long, value_parser, default_values_t=DEFAULT_EXCLUDE_SOURCES.iter())]
-    exclude_sources: Vec<String>,
+    /// Sources to filter in
+    #[clap(long, value_parser)]
+    sources: Option<Vec<String>>,
+
+    /// Sources to filter in fuzzily
+    #[clap(long, value_parser)]
+    sources_fuzzy: Option<Vec<String>>,
 }
 
 fn main() {
@@ -57,9 +55,24 @@ fn main() {
     )
     .unwrap();
 
-    let mut records = Record::parse_messages(&msgs);
-    records = filter_out_sources(&records, &args.exclude_sources);
+    let mut msg_id_map = HashMap::new();
 
-    let v = Viewer::new(records);
-    println!("{}", v);
+    for msg in &msgs {
+        msg_id_map.insert(msg.id, msg);
+    }
+
+    let mut records = Record::parse_messages(&msgs);
+
+    if let Some(sources) = args.sources {
+        records = finny::filter_in_sources(&records, &sources)
+    }
+
+    if let Some(sources) = args.sources_fuzzy {
+        records = finny::fuzzy_filter_in_sources(&records, &sources)
+    }
+
+    dbg!(records
+        .iter()
+        .map(|r| *msg_id_map.get(&r.message_id).unwrap())
+        .collect::<Vec<&TextMessage>>());
 }
