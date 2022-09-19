@@ -1,6 +1,7 @@
 use std::error;
 use std::fmt::Display;
 use std::num::ParseIntError;
+use std::str::FromStr;
 
 use crate::wrapper::Currency;
 use chrono::DateTime;
@@ -46,35 +47,31 @@ impl From<ParseError> for Error {
     }
 }
 
+impl From<<Nature as FromStr>::Err> for Error {
+    fn from(error: <Nature as FromStr>::Err) -> Self {
+        Error(format!("error parsing Nature: {}", &error.to_string()))
+    }
+}
+
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 
-pub trait ParseableValue {}
-
-trait ValueParser<T: ParseableValue> {
-    fn parse(&self, val: &str) -> Result<T, Error>;
-}
-
 #[derive(Debug, Deserialize, Clone)]
 pub struct StringParser;
 
-impl ParseableValue for String {}
-
-impl ValueParser<String> for StringParser {
+impl StringParser {
     fn parse(&self, val: &str) -> Result<String, Error> {
-        Ok(val.to_string())
+        Ok(val.trim().to_string())
     }
 }
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct CurrencyParser;
 
-impl ParseableValue for Currency {}
-
-impl ValueParser<Currency> for CurrencyParser {
+impl CurrencyParser {
     fn parse(&self, val: &str) -> Result<Currency, Error> {
         iso::find(val)
             .map(|c| Currency(c))
@@ -85,15 +82,34 @@ impl ValueParser<Currency> for CurrencyParser {
 #[derive(Debug, Deserialize, Clone)]
 pub struct DateTimeParser(pub String);
 
-impl ParseableValue for DateTime<Utc> {}
-
-impl ValueParser<DateTime<Utc>> for DateTimeParser {
+impl DateTimeParser {
     fn parse(&self, val: &str) -> Result<DateTime<Utc>, Error> {
         Ok(Local.datetime_from_str(val, &self.0)?.with_timezone(&Utc))
     }
 }
 
-impl ParseableValue for Nature {}
+#[derive(Debug, Deserialize, Clone)]
+pub struct DateTimeWithAppendParser {
+    pub format: String,
+    pub suffix: String,
+}
+
+impl DateTimeWithAppendParser {
+    fn parse(&self, val: &str) -> Result<DateTime<Utc>, Error> {
+        Ok(Local
+            .datetime_from_str(&format!("{}{}", val, self.suffix), &self.format)?
+            .with_timezone(&Utc))
+    }
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct NatureParser;
+
+impl NatureParser {
+    fn parse(&self, val: &str) -> Result<Nature, Error> {
+        Ok(val.parse()?)
+    }
+}
 
 #[derive(Debug, Deserialize, Clone)]
 #[serde(tag = "type", content = "config")]
@@ -101,30 +117,36 @@ pub enum Parser {
     String(StringParser),
     Currency(CurrencyParser),
     DateTime(DateTimeParser),
+    DateTimeWithAppend(DateTimeWithAppendParser),
+    Nature(NatureParser),
 }
 
-impl ValueParser<String> for Parser {
-    fn parse(&self, val: &str) -> Result<String, Error> {
+impl Parser {
+    fn parse_string(&self, val: &str) -> Result<String, Error> {
         match self {
             Parser::String(parser) => parser.parse(val),
             _ => panic!("given parser does not parse expected data"),
         }
     }
-}
 
-impl ValueParser<Currency> for Parser {
-    fn parse(&self, val: &str) -> Result<Currency, Error> {
+    fn parse_currency(&self, val: &str) -> Result<Currency, Error> {
         match self {
             Parser::Currency(parser) => parser.parse(val),
             _ => panic!("given parser does not parse expected data"),
         }
     }
-}
 
-impl ValueParser<DateTime<Utc>> for Parser {
-    fn parse(&self, val: &str) -> Result<DateTime<Utc>, Error> {
+    fn parse_datetime(&self, val: &str) -> Result<DateTime<Utc>, Error> {
         match self {
             Parser::DateTime(parser) => parser.parse(val),
+            Parser::DateTimeWithAppend(parser) => parser.parse(val),
+            _ => panic!("given parser does not parse expected data"),
+        }
+    }
+
+    fn parse_nature(&self, val: &str) -> Result<Nature, Error> {
+        match self {
+            Parser::Nature(parser) => parser.parse(val),
             _ => panic!("given parser does not parse expected data"),
         }
     }
@@ -132,7 +154,7 @@ impl ValueParser<DateTime<Utc>> for Parser {
 
 #[derive(Debug, Deserialize, Clone)]
 #[serde(tag = "type", content = "config")]
-pub enum Value<T: ParseableValue> {
+pub enum Value<T> {
     Fixed(T),
     FromMatch { group: String, parser: Parser },
 }
@@ -193,51 +215,53 @@ impl<'a> RecordParser<'a> {
     ) -> Result<Record, Error> {
         Ok(Record {
             message_id: msg.id,
-            nature: RecordParser::extract_value_nature(&values.nature, captures)?,
-            account: RecordParser::extract_value_string(&values.account, captures)?,
+            nature: RecordParser::extract_nature(&values.nature, captures)?,
+            account: RecordParser::extract_string(&values.account, captures)?,
             amount: Money::from_str(
-                &RecordParser::extract_value_string(&values.amount, captures)?,
-                RecordParser::extract_value_currency(&values.currency, captures)?.0,
+                &RecordParser::extract_string(&values.amount, captures)?,
+                RecordParser::extract_currency(&values.currency, captures)?.0,
             )?,
-            source: RecordParser::extract_value_string(&values.source, captures)?,
-            time: RecordParser::extract_value_datetime(&values.time, captures)?,
+            source: RecordParser::extract_string(&values.source, captures)?,
+            time: RecordParser::extract_datetime(&values.time, captures)?,
         })
     }
 
-    fn extract_value_string(value: &Value<String>, captures: &Captures) -> Result<String, Error> {
+    fn extract_string(value: &Value<String>, captures: &Captures) -> Result<String, Error> {
         match value {
             Value::Fixed(value) => Ok(value.clone()),
-            Value::FromMatch { group, parser } => Ok(parser.parse(&captures[&group as &str])?),
+            Value::FromMatch { group, parser } => {
+                Ok(parser.parse_string(&captures[&group as &str])?)
+            }
         }
     }
 
-    fn extract_value_datetime(
+    fn extract_datetime(
         value: &Value<DateTime<Utc>>,
         captures: &Captures,
     ) -> Result<DateTime<Utc>, Error> {
         match value {
             Value::Fixed(value) => Ok(value.clone()),
-            Value::FromMatch { group, parser } => Ok(parser.parse(&captures[&group as &str])?),
+            Value::FromMatch { group, parser } => {
+                Ok(parser.parse_datetime(&captures[&group as &str])?)
+            }
         }
     }
 
-    fn extract_value_currency(
-        value: &Value<Currency>,
-        captures: &Captures,
-    ) -> Result<Currency, Error> {
+    fn extract_currency(value: &Value<Currency>, captures: &Captures) -> Result<Currency, Error> {
         match value {
             Value::Fixed(value) => Ok(value.clone()),
-            Value::FromMatch { group, parser } => Ok(parser.parse(&captures[&group as &str])?),
+            Value::FromMatch { group, parser } => {
+                Ok(parser.parse_currency(&captures[&group as &str])?)
+            }
         }
     }
 
-    fn extract_value_nature(value: &Value<Nature>, _captures: &Captures) -> Result<Nature, Error> {
+    fn extract_nature(value: &Value<Nature>, captures: &Captures) -> Result<Nature, Error> {
         match value {
             Value::Fixed(value) => Ok(value.clone()),
-            Value::FromMatch {
-                group: _,
-                parser: _,
-            } => todo!(),
+            Value::FromMatch { group, parser } => {
+                Ok(parser.parse_nature(&captures[&group as &str])?)
+            }
         }
     }
 }

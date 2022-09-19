@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use chrono::DateTime;
 use chrono::Utc;
 use rusty_money::iso::Currency;
@@ -14,6 +16,18 @@ pub enum Nature {
     #[allow(dead_code)]
     Credit,
     Debit,
+}
+
+impl FromStr for Nature {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Debit" => Ok(Nature::Debit),
+            "Credit" => Ok(Nature::Credit),
+            _ => Err(format!("expected 'Debit' or 'Credit', got: {}", s)),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

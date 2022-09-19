@@ -28,7 +28,10 @@ pub const NORMALIZED_CURRENCY: &Currency = iso::PKR;
 lazy_static! {
     //FIXME: remove when https://github.com/varunsrin/rusty_money/pull/75 is merged
     static ref RATES: Vec<ExchangeRate<'static, Currency>> =
-        vec![ExchangeRate::new(iso::USD, iso::PKR, dec!(237)).unwrap(),];
+        vec![
+            ExchangeRate::new(iso::USD, iso::PKR, dec!(237)).unwrap(),
+            ExchangeRate::new(iso::SGD, iso::PKR, dec!(158)).unwrap()
+        ];
     static ref EXCHANGE: Exchange<'static, Currency> = {
         let mut exchange: Exchange<'static, Currency> = Exchange::new();
         for rate in RATES.iter() {
@@ -90,9 +93,13 @@ impl Viewer {
         if r.amount.currency() != NORMALIZED_CURRENCY {
             let rate = EXCHANGE
                 .get_rate(r.amount.currency(), NORMALIZED_CURRENCY)
-                .unwrap();
+                .expect(&format!(
+                    "currency rate not configured: {}",
+                    r.amount.currency().iso_alpha_code
+                ));
 
-            result = rate.convert(result).unwrap()
+            result = rate.convert(result).unwrap();
+            let _f = 1;
         }
 
         if let Nature::Debit = r.nature {

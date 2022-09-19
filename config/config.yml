@@ -36,3 +36,131 @@ matchers:
           parser:
             type: DateTime
             config: '%d-%m-%y %H:%M'
+
+  - id: js-credit-card-used
+    pattern: 'Dear .+, your JS Bank credit card ending with (?P<card>.+) has been used for (?P<currency>[A-Z]+) (?P<amount>.+) at (?P<location>.+) on (?P<datetime>.+ at \d\d:\d\d:\d\d)\.'
+    values:
+      nature:
+        type: Fixed
+        config: Debit
+      account:
+        type: FromMatch
+        config:
+          group: card
+          parser:
+            type: String
+            config:
+      amount:
+        type: FromMatch
+        config:
+          group: amount
+          parser:
+            type: String
+            config:
+      currency:
+        type: FromMatch
+        config:
+          group: currency
+          parser:
+            type: Currency
+            config:
+      source:
+        type: FromMatch
+        config:
+          group: location
+          parser:
+            type: String
+            config:
+      time:
+        type: FromMatch
+        config:
+          group: datetime
+          parser:
+            type: DateTime
+            config: '%d/%m/%y at %H:%M:%S'
+
+  - id: js-credit-card-online-used
+    pattern: 'Dear .+, your JS Bank credit card ending with (?P<card>.+) has been used for (?P<currency>[A-Z]+) (?P<amount>.+) at (?P<location>.+) on (?P<datetime>.+ at \d+)\.'
+    values:
+      nature:
+        type: Fixed
+        config: Debit
+      account:
+        type: FromMatch
+        config:
+          group: card
+          parser:
+            type: String
+            config:
+      amount:
+        type: FromMatch
+        config:
+          group: amount
+          parser:
+            type: String
+            config:
+      currency:
+        type: FromMatch
+        config:
+          group: currency
+          parser:
+            type: Currency
+            config:
+      source:
+        type: FromMatch
+        config:
+          group: location
+          parser:
+            type: String
+            config:
+      time:
+        type: FromMatch
+        config:
+          group: datetime
+          parser:
+            type: DateTimeWithAppend
+            config:
+              format: '%d/%m/%y at %H:%M'
+              suffix: ':00'
+
+  - id: js-cash-withdrawl
+    pattern: 'Acct. (?P<account>.+) debited by (?P<currency>.+) (?P<amount>.+) due to (?P<reason>.+) at (?P<datetime>.+ hrs on .+).Current Balance: .+'
+    values:
+      nature:
+        type: Fixed
+        config: Debit
+      account:
+        type: FromMatch
+        config:
+          group: account
+          parser:
+            type: String
+            config:
+      amount:
+        type: FromMatch
+        config:
+          group: amount
+          parser:
+            type: String
+            config:
+      currency:
+        type: FromMatch
+        config:
+          group: currency
+          parser:
+            type: Currency
+            config:
+      source:
+        type: FromMatch
+        config:
+          group: reason
+          parser:
+            type: String
+            config:
+      time:
+        type: FromMatch
+        config:
+          group: datetime
+          parser:
+            type: DateTime
+            config: '%H:%M hrs on %d-%m-%Y'
