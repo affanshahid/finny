@@ -59,7 +59,7 @@ impl Display for Error {
     }
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize)]
 pub struct StringParser;
 
 impl StringParser {
@@ -68,7 +68,7 @@ impl StringParser {
     }
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize)]
 pub struct CurrencyParser;
 
 impl CurrencyParser {
@@ -79,7 +79,7 @@ impl CurrencyParser {
     }
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize)]
 pub struct DateTimeParser(pub String);
 
 impl DateTimeParser {
@@ -88,7 +88,7 @@ impl DateTimeParser {
     }
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize)]
 pub struct DateTimeWithAppendParser {
     pub format: String,
     pub suffix: String,
@@ -102,7 +102,7 @@ impl DateTimeWithAppendParser {
     }
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize)]
 pub struct NatureParser;
 
 impl NatureParser {
@@ -111,7 +111,7 @@ impl NatureParser {
     }
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize)]
 #[serde(tag = "type", content = "config")]
 pub enum Parser {
     String(StringParser),
@@ -152,14 +152,14 @@ impl Parser {
     }
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize)]
 #[serde(tag = "type", content = "config")]
 pub enum Value<T> {
     Fixed(T),
     FromMatch { group: String, parser: Parser },
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize)]
 pub struct ValuesConfig {
     pub nature: Value<Nature>,
     pub account: Value<String>,
@@ -169,7 +169,7 @@ pub struct ValuesConfig {
     pub time: Value<DateTime<Utc>>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize)]
 pub struct Matcher {
     pub id: String,
     #[serde(with = "serde_regex")]
