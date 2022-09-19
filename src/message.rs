@@ -1,11 +1,11 @@
 use std::error;
-use std::fmt::Display;
 
 use chrono::DateTime;
 use chrono::TimeZone;
 use chrono::Utc;
 use rusqlite::params;
 use rusqlite::Connection;
+use strum_macros::Display;
 
 const NSECS_SINCE_2001: i64 = 978307200000000000;
 const QUERY: &str = "
@@ -30,22 +30,13 @@ pub struct TextMessage {
     pub time: DateTime<Utc>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Display)]
 pub enum Error {
     HomeDirNotFound,
     SqliteError(rusqlite::Error),
 }
 
 impl error::Error for Error {}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Error::HomeDirNotFound => write!(f, "unable to get home dir"),
-            Error::SqliteError(err) => write!(f, "{}", err),
-        }
-    }
-}
 
 impl From<rusqlite::Error> for Error {
     fn from(error: rusqlite::Error) -> Error {

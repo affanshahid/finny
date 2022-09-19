@@ -1,0 +1,38 @@
+matchers:
+  - id: habib-metro-cash-withdraw
+    pattern: 'HABIBMETRO - Alert: (?P<datetime>[0-9-]+ [0-9:]+) (?P<account>.+) Amt (?P<amount>.+) Debited /Switch Withdrawal (?P<location>.+), Avl. Bal .+ CR'
+    values:
+      nature:
+        type: Fixed
+        config: Debit
+      account:
+        type: FromMatch
+        config:
+          group: account
+          parser:
+            type: String
+            config:
+      amount:
+        type: FromMatch
+        config:
+          group: amount
+          parser:
+            type: String
+            config:
+      currency:
+        type: Fixed
+        config: PKR
+      source:
+        type: FromMatch
+        config:
+          group: location
+          parser:
+            type: String
+            config:
+      time:
+        type: FromMatch
+        config:
+          group: datetime
+          parser:
+            type: DateTime
+            config: '%d-%m-%y %H:%M'

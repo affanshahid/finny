@@ -2,19 +2,21 @@ use chrono::DateTime;
 use chrono::Utc;
 use rusty_money::iso::Currency;
 use rusty_money::Money;
-use tabled::Tabled;
+use serde::Deserialize;
+use serde::Serialize;
 
-use crate::matcher::MATCHERS;
+use crate::config::CONFIG;
 use crate::message::TextMessage;
+use crate::parser::RecordParser;
 
-#[derive(Debug, strum_macros::Display, Clone)]
+#[derive(Debug, strum_macros::Display, Clone, Serialize, Deserialize)]
 pub enum Nature {
     #[allow(dead_code)]
     Credit,
     Debit,
 }
 
-#[derive(Debug, Clone, Tabled)]
+#[derive(Debug, Clone)]
 pub struct Record {
     pub message_id: u32,
     pub nature: Nature,
@@ -26,23 +28,8 @@ pub struct Record {
 
 impl Record {
     pub fn parse_messages(messages: &Vec<TextMessage>) -> Vec<Record> {
-        messages
-            .iter()
-            .filter_map(|msg| {
-                Some((
-                    msg,
-                    MATCHERS.iter().find(|m| m.pattern.is_match(&msg.text))?,
-                ))
-            })
-            .filter_map(|(msg, matcher)| {
-                match (matcher.factory)(matcher.pattern.captures(&msg.text).unwrap(), msg) {
-                    Ok(r) => Some(r),
-                    Err(err) => {
-                        println!("unable to parse: {}: error: {}", msg.text, err);
-                        None
-                    }
-                }
-            })
-            .collect()
+        let parser = RecordParser::new(&CONFIG);
+
+        messages.iter().filter_map(|m| parser.parse(m)).collect()
     }
 }

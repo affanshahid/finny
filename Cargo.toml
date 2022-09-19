@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-chrono = "0.4.22"
+chrono = { version = "0.4.22", features = ["serde"] }
 chronoutil = "0.2.3"
 clap = { version = "3.2.21", features = ["derive"] }
 comfy-table = "6.1.0"
@@ -17,5 +17,8 @@ rusqlite = { version = "0.28.0", features = ["bundled"] }
 rust_decimal = "1.26.1"
 rust_decimal_macros = "1.26.1"
 rusty-money = { version = "0.4.1", features = ["iso"] }
+serde = { version = "1.0.144", features = ["derive"] }
+serde_json = "1.0.85"
+serde_regex = "1.1.0"
 strum_macros = "0.24.3"
-tabled = "0.8.0"
+yaml2json-rs = "0.3.2"
