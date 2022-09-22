@@ -119,6 +119,15 @@ pub enum Value<T: Clone, R: ValueParser<T>> {
     FromMatch { group: String, parser: R },
 }
 
+impl<T: Clone, R: ValueParser<T>> Value<T, R> {
+    fn extract(&self, captures: &Captures) -> Result<T, Error> {
+        match self {
+            Value::Fixed(value) => Ok(value.clone()),
+            Value::FromMatch { group, parser } => Ok(parser.parse(&captures[&group as &str])?),
+        }
+    }
+}
+
 #[derive(Debug, Deserialize)]
 pub struct ValuesConfig {
     pub nature: Value<Nature, NatureParser>,
@@ -175,24 +184,14 @@ impl<'a> RecordParser<'a> {
     ) -> Result<Record, Error> {
         Ok(Record {
             message_id: msg.id,
-            nature: RecordParser::extract(&values.nature, captures)?,
-            account: RecordParser::extract(&values.account, captures)?,
+            nature: values.nature.extract(captures)?,
+            account: values.account.extract(captures)?,
             amount: Money::from_str(
-                &RecordParser::extract(&values.amount, captures)?,
-                RecordParser::extract(&values.currency, captures)?.0,
+                &values.amount.extract(captures)?,
+                values.currency.extract(captures)?.0,
             )?,
-            source: RecordParser::extract(&values.source, captures)?,
-            time: RecordParser::extract(&values.time, captures)?,
+            source: values.source.extract(captures)?,
+            time: values.time.extract(captures)?,
         })
-    }
-
-    fn extract<T: Clone, R: ValueParser<T>>(
-        value: &Value<T, R>,
-        captures: &Captures,
-    ) -> Result<T, Error> {
-        match value {
-            Value::Fixed(value) => Ok(value.clone()),
-            Value::FromMatch { group, parser } => Ok(parser.parse(&captures[&group as &str])?),
-        }
     }
 }
