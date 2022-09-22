@@ -9,16 +9,12 @@ matchers:
         type: FromMatch
         config:
           group: account
-          parser:
-            type: String
-            config:
+          parser: null
       amount:
         type: FromMatch
         config:
           group: amount
-          parser:
-            type: String
-            config:
+          parser: null
       currency:
         type: Fixed
         config: PKR
@@ -26,15 +22,13 @@ matchers:
         type: FromMatch
         config:
           group: location
-          parser:
-            type: String
-            config:
+          parser: null
       time:
         type: FromMatch
         config:
           group: datetime
           parser:
-            type: DateTime
+            type: FormattedDateTime
             config: '%d-%m-%y %H:%M'
 
   - id: js-credit-card-used
@@ -47,36 +41,28 @@ matchers:
         type: FromMatch
         config:
           group: card
-          parser:
-            type: String
-            config:
+          parser: null
       amount:
         type: FromMatch
         config:
           group: amount
-          parser:
-            type: String
-            config:
+          parser: null
       currency:
         type: FromMatch
         config:
           group: currency
-          parser:
-            type: Currency
-            config:
+          parser: null
       source:
         type: FromMatch
         config:
           group: location
-          parser:
-            type: String
-            config:
+          parser: null
       time:
         type: FromMatch
         config:
           group: datetime
           parser:
-            type: DateTime
+            type: FormattedDateTime
             config: '%d/%m/%y at %H:%M:%S'
 
   - id: js-credit-card-online-used
@@ -89,36 +75,28 @@ matchers:
         type: FromMatch
         config:
           group: card
-          parser:
-            type: String
-            config:
+          parser: null
       amount:
         type: FromMatch
         config:
           group: amount
-          parser:
-            type: String
-            config:
+          parser: null
       currency:
         type: FromMatch
         config:
           group: currency
-          parser:
-            type: Currency
-            config:
+          parser: null
       source:
         type: FromMatch
         config:
           group: location
-          parser:
-            type: String
-            config:
+          parser: null
       time:
         type: FromMatch
         config:
           group: datetime
           parser:
-            type: DateTimeWithAppend
+            type: FormattedDateTimeWithAppend
             config:
               format: '%d/%m/%y at %H:%M'
               suffix: ':00'
@@ -133,34 +111,26 @@ matchers:
         type: FromMatch
         config:
           group: account
-          parser:
-            type: String
-            config:
+          parser: null
       amount:
         type: FromMatch
         config:
           group: amount
-          parser:
-            type: String
-            config:
+          parser: null
       currency:
         type: FromMatch
         config:
           group: currency
-          parser:
-            type: Currency
-            config:
+          parser: null
       source:
         type: FromMatch
         config:
           group: reason
-          parser:
-            type: String
-            config:
+          parser: null
       time:
         type: FromMatch
         config:
           group: datetime
           parser:
-            type: DateTime
+            type: FormattedDateTime
             config: '%H:%M hrs on %d-%m-%Y'
