@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+use std::vec;
+
 use lazy_static::lazy_static;
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
@@ -89,4 +92,26 @@ pub fn normalize_amount(r: &Record) -> Money<'static, Currency> {
     }
 
     result
+}
+
+pub fn group<'a>(records: &Vec<Record<'a>>) -> HashMap<String, Vec<Record<'a>>> {
+    let mut map = HashMap::new();
+
+    for record in records {
+        match map.get_mut(&record.source) {
+            None => {
+                map.insert(record.source.clone(), vec![record.clone()]);
+            }
+            Some(list) => list.push(record.clone()),
+        };
+    }
+
+    map
+}
+
+pub fn group_totals<'a>(records: &Vec<Record<'a>>) -> HashMap<String, Money<'static, Currency>> {
+    group(&records)
+        .into_iter()
+        .map(|(k, v)| (k, calculate_total(&v)))
+        .collect()
 }

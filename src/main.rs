@@ -63,7 +63,6 @@ fn main() {
 
     let mut records = Record::parse_messages(&msgs);
     records = filter_out_sources(&records, &args.exclude_sources);
-
     let v = Viewer::new(records, args.show_matcher);
     println!("{}", v);
 }

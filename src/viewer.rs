@@ -91,6 +91,26 @@ impl Display for Viewer<'_> {
             )
             .add_row(self.create_total_row());
 
+        table.fmt(f)?;
+        write!(f, "\n")?;
+
+        let mut table = Table::new();
+        let mut totals: Vec<_> = process::group_totals(&self.records).into_iter().collect();
+        totals.sort_by(|a, b| a.1.amount().cmp(b.1.amount()));
+
+        table
+            .load_preset(UTF8_FULL)
+            .apply_modifier(UTF8_ROUND_CORNERS)
+            .apply_modifier(UTF8_SOLID_INNER_BORDERS)
+            .set_content_arrangement(ContentArrangement::Dynamic)
+            .set_header(vec!["Source", "Total"])
+            .add_rows(
+                totals
+                    .iter()
+                    .map(|(k, v)| vec![Cell::new(k), Cell::new(v)])
+                    .collect::<Vec<_>>(),
+            );
+
         table.fmt(f)
     }
 }
