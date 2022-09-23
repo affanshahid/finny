@@ -157,7 +157,7 @@ impl<'a> RecordParser<'a> {
         }
     }
 
-    pub fn parse(&self, msg: &TextMessage) -> Option<Record> {
+    pub fn parse(&self, msg: &TextMessage) -> Option<Record<'a>> {
         let matcher = self
             .matchers
             .iter()
@@ -168,7 +168,7 @@ impl<'a> RecordParser<'a> {
             .captures(&msg.text)
             .expect("expected all captures to match");
 
-        match RecordParser::parse_record(&matcher.values, &captures, msg) {
+        match RecordParser::parse_record(&matcher, &captures, msg) {
             Ok(record) => Some(record),
             Err(err) => {
                 println!("error while parsing record: {}", err);
@@ -178,10 +178,11 @@ impl<'a> RecordParser<'a> {
     }
 
     fn parse_record(
-        values: &ValuesConfig,
+        matcher: &'a Matcher,
         captures: &Captures,
         msg: &TextMessage,
-    ) -> Result<Record, Error> {
+    ) -> Result<Record<'a>, Error> {
+        let values = &matcher.values;
         Ok(Record {
             message_id: msg.id,
             nature: values.nature.extract(captures)?,
@@ -192,6 +193,7 @@ impl<'a> RecordParser<'a> {
             )?,
             source: values.source.extract(captures)?,
             time: values.time.extract(captures)?,
+            matcher,
         })
     }
 }

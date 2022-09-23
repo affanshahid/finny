@@ -64,7 +64,7 @@ fn main() {
     let mut records = Record::parse_messages(&msgs);
 
     if let Some(sources) = args.sources {
-        records = finny::filter_in_sources(&records, &sources)
+        records = finny::filter_in_sources(&records, &sources);
     }
 
     if let Some(sources) = args.sources_fuzzy {

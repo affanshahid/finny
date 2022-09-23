@@ -1,6 +1,6 @@
 use crate::record::Record;
 
-pub fn filter_out_sources(records: &Vec<Record>, sources: &Vec<String>) -> Vec<Record> {
+pub fn filter_out_sources<'a>(records: &Vec<Record<'a>>, sources: &Vec<String>) -> Vec<Record<'a>> {
     records
         .clone()
         .into_iter()
@@ -8,7 +8,7 @@ pub fn filter_out_sources(records: &Vec<Record>, sources: &Vec<String>) -> Vec<R
         .collect()
 }
 
-pub fn filter_in_sources(records: &Vec<Record>, sources: &Vec<String>) -> Vec<Record> {
+pub fn filter_in_sources<'a>(records: &Vec<Record<'a>>, sources: &Vec<String>) -> Vec<Record<'a>> {
     records
         .clone()
         .into_iter()
@@ -16,7 +16,10 @@ pub fn filter_in_sources(records: &Vec<Record>, sources: &Vec<String>) -> Vec<Re
         .collect()
 }
 
-pub fn fuzzy_filter_in_sources(records: &Vec<Record>, sources: &Vec<String>) -> Vec<Record> {
+pub fn fuzzy_filter_in_sources<'a>(
+    records: &Vec<Record<'a>>,
+    sources: &Vec<String>,
+) -> Vec<Record<'a>> {
     records
         .clone()
         .into_iter()

@@ -9,6 +9,7 @@ use serde::Serialize;
 
 use crate::config::CONFIG;
 use crate::message::TextMessage;
+use crate::parser::Matcher;
 use crate::parser::RecordParser;
 
 #[derive(Debug, strum_macros::Display, Clone, Serialize, Deserialize)]
@@ -31,7 +32,8 @@ impl FromStr for Nature {
 }
 
 #[derive(Debug, Clone)]
-pub struct Record {
+pub struct Record<'a> {
+    pub matcher: &'a Matcher,
     pub message_id: u32,
     pub nature: Nature,
     pub account: String,
@@ -40,8 +42,8 @@ pub struct Record {
     pub time: DateTime<Utc>,
 }
 
-impl Record {
-    pub fn parse_messages(messages: &Vec<TextMessage>) -> Vec<Record> {
+impl Record<'_> {
+    pub fn parse_messages<'a>(messages: &'a Vec<TextMessage>) -> Vec<Record<'a>> {
         let parser = RecordParser::new(&CONFIG);
 
         messages.iter().filter_map(|m| parser.parse(m)).collect()

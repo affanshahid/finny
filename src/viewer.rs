@@ -41,11 +41,11 @@ lazy_static! {
     };
 }
 
-pub struct Viewer {
-    records: Vec<Record>,
+pub struct Viewer<'a> {
+    records: Vec<Record<'a>>,
 }
 
-impl Viewer {
+impl Viewer<'_> {
     pub fn new(records: Vec<Record>) -> Viewer {
         Viewer { records: records }
     }
@@ -53,6 +53,7 @@ impl Viewer {
     fn record_to_row(r: &Record) -> Row {
         vec![
             Cell::new(r.message_id),
+            Cell::new(&r.matcher.id),
             Cell::new(r.time.format("%a, %d/%m/%y %I:%M %p")),
             Cell::new(&r.source),
             Cell::new(Self::normalized_amount(&r)).fg(match r.nature {
@@ -111,7 +112,7 @@ impl Viewer {
     }
 }
 
-impl Display for Viewer {
+impl Display for Viewer<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut table = Table::new();
 
@@ -120,7 +121,7 @@ impl Display for Viewer {
             .apply_modifier(UTF8_ROUND_CORNERS)
             .apply_modifier(UTF8_SOLID_INNER_BORDERS)
             .set_content_arrangement(ContentArrangement::Dynamic)
-            .set_header(vec!["ID", "Time", "Reason", "Amount"])
+            .set_header(vec!["ID", "Pattern", "Time", "Reason", "Amount"])
             .add_rows(
                 self.records
                     .iter()
