@@ -46,6 +46,10 @@ struct Args {
     /// Sources to filter out
     #[clap(long, value_parser, default_values_t=DEFAULT_EXCLUDE_SOURCES.iter())]
     exclude_sources: Vec<String>,
+
+    /// Show pattern id when displaying transactions
+    #[clap(short = 'p', long, value_parser, default_value_t = false)]
+    show_matcher: bool,
 }
 
 fn main() {
@@ -60,6 +64,6 @@ fn main() {
     let mut records = Record::parse_messages(&msgs);
     records = filter_out_sources(&records, &args.exclude_sources);
 
-    let v = Viewer::new(records);
+    let v = Viewer::new(records, args.show_matcher);
     println!("{}", v);
 }

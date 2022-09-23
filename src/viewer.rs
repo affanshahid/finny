@@ -42,37 +42,44 @@ lazy_static! {
 }
 
 pub struct Viewer<'a> {
+    show_matchers: bool,
     records: Vec<Record<'a>>,
 }
 
 impl Viewer<'_> {
-    pub fn new(records: Vec<Record>) -> Viewer {
-        Viewer { records: records }
+    pub fn new(records: Vec<Record>, show_matchers: bool) -> Viewer {
+        Viewer {
+            records,
+            show_matchers,
+        }
     }
 
-    fn record_to_row(r: &Record) -> Row {
-        vec![
-            Cell::new(r.message_id),
-            Cell::new(&r.matcher.id),
-            Cell::new(r.time.format("%a, %d/%m/%y %I:%M %p")),
-            Cell::new(&r.source),
-            Cell::new(Self::normalized_amount(&r)).fg(match r.nature {
-                Nature::Credit => Color::Green,
-                Nature::Debit => Color::Red,
-            }),
-        ]
-        .into()
+    fn record_to_row(&self, r: &Record) -> Row {
+        let mut row = Row::new();
+        row.add_cell(Cell::new(r.message_id));
+        row.add_cell(Cell::new(r.time.format("%a, %d/%m/%y %I:%M %p")));
+        if self.show_matchers {
+            row.add_cell(Cell::new(&r.matcher.id));
+        }
+        row.add_cell(Cell::new(&r.source));
+        row.add_cell(Cell::new(Self::normalized_amount(&r)).fg(match r.nature {
+            Nature::Credit => Color::Green,
+            Nature::Debit => Color::Red,
+        }));
+
+        row
     }
 
-    fn compute_total_row(records: &Vec<Record>) -> Row {
-        let total = records
+    fn compute_total_row(&self) -> Row {
+        let total = self
+            .records
             .iter()
             .map(|r| Self::normalized_amount(r).amount().clone())
             .reduce(|accum, current| accum + current)
             .map(|total| Money::from_decimal(total, NORMALIZED_CURRENCY))
             .unwrap();
 
-        vec![
+        let mut row = vec![
             Cell::new(""),
             Cell::new(""),
             Cell::new("TOTAL")
@@ -83,8 +90,12 @@ impl Viewer<'_> {
             } else {
                 Color::Red
             }),
-        ]
-        .into()
+        ];
+
+        if self.show_matchers {
+            row.insert(0, Cell::new(""));
+        }
+        row.into()
     }
 
     fn normalized_amount(r: &Record) -> Money<'static, Currency> {
@@ -115,20 +126,25 @@ impl Viewer<'_> {
 impl Display for Viewer<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut table = Table::new();
+        let header = if self.show_matchers {
+            vec!["ID", "Time", "Pattern", "Reason", "Amount"]
+        } else {
+            vec!["ID", "Time", "Reason", "Amount"]
+        };
 
         table
             .load_preset(UTF8_FULL)
             .apply_modifier(UTF8_ROUND_CORNERS)
             .apply_modifier(UTF8_SOLID_INNER_BORDERS)
             .set_content_arrangement(ContentArrangement::Dynamic)
-            .set_header(vec!["ID", "Pattern", "Time", "Reason", "Amount"])
+            .set_header(header)
             .add_rows(
                 self.records
                     .iter()
-                    .map(Self::record_to_row)
+                    .map(|r| self.record_to_row(r))
                     .collect::<Vec<_>>(),
             )
-            .add_row(Self::compute_total_row(&self.records));
+            .add_row(self.compute_total_row());
 
         table.fmt(f)
     }
