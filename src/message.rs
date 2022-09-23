@@ -1,9 +1,11 @@
 use std::error;
+use std::rc::Rc;
 
 use chrono::DateTime;
 use chrono::TimeZone;
 use chrono::Utc;
 use rusqlite::params;
+use rusqlite::types::Value;
 use rusqlite::Connection;
 use strum_macros::Display;
 
@@ -17,7 +19,7 @@ from handle h
 join message m 
 	on h.ROWID = m.handle_id  
 where 
-	h.id in {IDS} and
+	h.id in rarray(?) and
 	m.date between ? and ?
 order by
     m.date;
@@ -50,14 +52,6 @@ impl TextMessage {
         start: &DateTime<Utc>,
         end: &DateTime<Utc>,
     ) -> Result<Vec<TextMessage>, Error> {
-        let in_param = String::from("(")
-            + &source
-                .iter()
-                .map(|s| format!("\"{}\"", s).to_string())
-                .collect::<Vec<String>>()
-                .join(",")
-            + ")";
-
         let mut home = match home::home_dir() {
             Some(path) => path,
             None => return Err(Error::HomeDirNotFound),
@@ -65,10 +59,20 @@ impl TextMessage {
         home.push("Library/Messages/chat.db");
 
         let conn = Connection::open(home)?;
-        let mut stmt = conn.prepare(&QUERY.replace("{IDS}", &in_param))?;
+        rusqlite::vtab::array::load_module(&conn)?;
+
+        let mut stmt = conn.prepare(&QUERY)?;
+        let ids: Rc<Vec<_>> = Rc::new(
+            source
+                .iter()
+                .map(ToString::to_string)
+                .map(Value::from)
+                .collect(),
+        );
 
         let msgs = stmt.query_map(
             params![
+                ids,
                 start.timestamp_nanos() - NSECS_SINCE_2001,
                 (end.timestamp_nanos() - NSECS_SINCE_2001),
             ],

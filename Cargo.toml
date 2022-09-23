@@ -13,7 +13,7 @@ comfy-table = "6.1.0"
 home = "0.5.3"
 lazy_static = "1.4.0"
 regex = "1.6.0"
-rusqlite = { version = "0.28.0", features = ["bundled"] }
+rusqlite = { version = "0.28.0", features = ["bundled", "array"] }
 rust_decimal = "1.26.1"
 rust_decimal_macros = "1.26.1"
 rusty-money = { version = "0.4.1", features = ["iso"] }
