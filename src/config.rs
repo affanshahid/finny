@@ -2,7 +2,6 @@ use std::error;
 use std::fs;
 use std::io;
 
-use lazy_static::lazy_static;
 use serde::Deserialize;
 use strum_macros::Display;
 use yaml2json_rs::Style;
@@ -43,14 +42,10 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new() -> Result<Config, Error> {
-        let cfg_str = fs::read_to_string("./config/config.yml")?;
+    pub fn new(path: &str) -> Result<Config, Error> {
+        let cfg_str = fs::read_to_string(path)?;
         let converter = Yaml2Json::new(Style::PRETTY);
         let cfg_str = converter.document_to_string(&cfg_str)?;
         Ok(serde_json::from_str(&cfg_str)?)
     }
-}
-
-lazy_static! {
-    pub static ref CONFIG: Config = Config::new().expect("error parsing config");
 }

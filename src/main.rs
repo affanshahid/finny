@@ -1,6 +1,7 @@
 use chrono::DateTime;
 use chrono::Utc;
 use clap::Parser;
+use finny::config::Config;
 use finny::message::TextMessage;
 use finny::process::filter_out_sources;
 use finny::record::Record;
@@ -20,7 +21,6 @@ lazy_static! {
 struct Args {
     /// Space separated list of contact numbers
     #[clap(
-        short,
         long,
         value_parser,
         default_values_t=vec!["8012".to_string(),"9355".to_string()]
@@ -32,7 +32,7 @@ struct Args {
         short,
         long,
         value_parser=str::parse::<DateTime<Utc>>,
-        default_value_t=chronoutil::shift_months(Utc::now(), -4),
+        default_value_t=chronoutil::shift_months(Utc::now(), -3),
     )]
     start: DateTime<Utc>,
 
@@ -48,6 +48,10 @@ struct Args {
     /// Sources to filter out
     #[clap(long, value_parser, default_values_t=DEFAULT_EXCLUDE_SOURCES.iter())]
     exclude_sources: Vec<String>,
+
+    /// Path to the matchers config
+    #[clap(short, long, value_parser, default_value = "./config.yml")]
+    config: String,
 
     #[clap(subcommand)]
     subcommand: Command,
@@ -78,7 +82,8 @@ fn main() {
     )
     .unwrap();
 
-    let mut records = Record::parse_messages(&msgs);
+    let config = Config::new(&args.config).expect("Error parsing configuration");
+    let mut records = Record::parse_messages(&config.matchers, &msgs);
     records = filter_out_sources(&records, &args.exclude_sources);
 
     match args.subcommand {

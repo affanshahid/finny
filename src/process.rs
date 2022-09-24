@@ -68,7 +68,7 @@ pub fn calculate_total(moneys: &Vec<impl Borrow<Money>>) -> Money {
         .map(|r| normalize_amount(r.borrow()).amount().clone())
         .reduce(|accum, current| accum + current)
         .map(|total| Money::from_decimal(total, NORMALIZED_CURRENCY))
-        .unwrap()
+        .unwrap_or(Money::from_major(0, iso::USD))
 }
 
 pub fn normalize_amount(amount: &Money) -> Money {

@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use chrono::DateTime;
 use chrono::Utc;
 use clap::Parser;
+use finny::config::Config;
 use finny::message::TextMessage;
 use finny::record::Record;
 
@@ -12,7 +13,6 @@ use finny::record::Record;
 struct Args {
     /// Space separated list of contact numbers
     #[clap(
-        short,
         long,
         value_parser,
         default_values_t=vec!["8012".to_string(),"9355".to_string()]
@@ -24,7 +24,7 @@ struct Args {
         short,
         long,
         value_parser=str::parse::<DateTime<Utc>>,
-        default_value_t=chronoutil::shift_months(Utc::now(), -4),
+        default_value_t=chronoutil::shift_months(Utc::now(), -3),
     )]
     start: DateTime<Utc>,
 
@@ -44,6 +44,10 @@ struct Args {
     /// Sources to filter in fuzzily
     #[clap(long, value_parser)]
     sources_fuzzy: Option<Vec<String>>,
+
+    /// Path to the matchers config
+    #[clap(short, long, value_parser, default_value = "./config.yml")]
+    config: String,
 }
 
 fn main() {
@@ -61,7 +65,8 @@ fn main() {
         msg_id_map.insert(msg.id, msg);
     }
 
-    let mut records = Record::parse_messages(&msgs);
+    let config = Config::new(&args.config).expect("Error parsing configuration");
+    let mut records = Record::parse_messages(&config.matchers, &msgs);
 
     if let Some(sources) = args.sources {
         records = finny::filter_in_sources(&records, &sources);

@@ -1,0 +1,62 @@
+matchers:
+  - id: pos-purchase-bank-a # Can be anything
+    pattern: 'Hello, your account (?P<account>.+) was charged at (?P<datetime>[0-9-]+ [0-9:]+) for (?P<amount>.+) by (?P<location>.+)'
+    nature: Debit # or Credit
+    values:
+      account:
+        type: FromMatch
+        config:
+          group: account
+          parser: null
+      amount:
+        type: FromMatch
+        config:
+          group: amount
+          parser: null
+      currency:
+        type: Fixed
+        config: USD
+      source:
+        type: FromMatch
+        config:
+          group: location
+          parser: null
+      time:
+        type: FromMatch
+        config:
+          group: datetime
+          parser:
+            type: FormattedDateTime
+            config: '%d-%m-%y %H:%M'
+
+  - id: online-purchase-bank-b
+    pattern: 'Hello, your credit card ending with (?P<card>.+) has been used for (?P<currency>[A-Z]+) (?P<amount>.+) at (?P<location>.+) on (?P<datetime>.+ at \d+)\.'
+    nature: Debit
+    values:
+      account:
+        type: FromMatch
+        config:
+          group: card
+          parser: null
+      amount:
+        type: FromMatch
+        config:
+          group: amount
+          parser: null
+      currency:
+        type: FromMatch
+        config:
+          group: currency
+          parser: null
+      source:
+        type: FromMatch
+        config:
+          group: location
+          parser: null
+      time:
+        type: FromMatch
+        config:
+          group: datetime
+          parser:
+            type: FormattedDateTime
+            config: '%d/%m/%y at %H:%M:%S'

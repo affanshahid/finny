@@ -13,7 +13,6 @@ use std::error;
 use std::fmt::Display;
 use std::num::ParseIntError;
 
-use crate::config::Config;
 use crate::message::TextMessage;
 use crate::record::Money;
 use crate::record::Record;
@@ -141,9 +140,9 @@ pub struct RecordParser<'a> {
 }
 
 impl<'a> RecordParser<'a> {
-    pub fn new(config: &'a Config) -> RecordParser<'a> {
+    pub fn new(matchers: &'a Vec<Matcher>) -> RecordParser<'a> {
         RecordParser {
-            matchers: &config.matchers,
+            matchers: &matchers,
         }
     }
 
