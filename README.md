@@ -1,4 +1,4 @@
-# FINNY
+# Finny
 
 A little CLI tool to view and aggregate financial transactions using the SMS messages sent by banks.
 This **only works on macOS** as it reads messages from the Messages app, which can be configured to sync SMS messages from a paired iPhone.

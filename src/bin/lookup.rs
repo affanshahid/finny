@@ -15,6 +15,7 @@ struct Args {
     #[clap(
         long,
         value_parser,
+        global = true,
         default_values_t=vec!["8012".to_string(),"9355".to_string()]
     )]
     contacts: Vec<String>,
@@ -24,6 +25,7 @@ struct Args {
         short,
         long,
         value_parser=str::parse::<DateTime<Utc>>,
+        global = true,
         default_value_t=chronoutil::shift_months(Utc::now(), -3),
     )]
     start: DateTime<Utc>,
@@ -33,20 +35,27 @@ struct Args {
         short,
         long,
         value_parser=str::parse::<DateTime<Utc>>,
+        global = true,
         default_value_t=Utc::now(),
     )]
     end: DateTime<Utc>,
 
     /// Sources to filter in
-    #[clap(long, value_parser)]
+    #[clap(long, value_parser, global = true)]
     sources: Option<Vec<String>>,
 
     /// Sources to filter in fuzzily
-    #[clap(long, value_parser)]
+    #[clap(long, value_parser, global = true)]
     sources_fuzzy: Option<Vec<String>>,
 
     /// Path to the matchers config
-    #[clap(short, long, value_parser, default_value = "./config.yml")]
+    #[clap(
+        short,
+        long,
+        value_parser,
+        global = true,
+        default_value = "./config.yml"
+    )]
     config: String,
 }
 
