@@ -13,8 +13,9 @@ use comfy_table::Row;
 use comfy_table::Table;
 
 use crate::process;
-use crate::record::Nature;
+use crate::record::Money;
 use crate::record::Record;
+use crate::Subscription;
 
 pub struct Viewer<'a> {
     show_matchers: bool,
@@ -37,34 +38,41 @@ impl Viewer<'_> {
             row.add_cell(Cell::new(&r.matcher.id));
         }
         row.add_cell(Cell::new(&r.source));
-        row.add_cell(Cell::new(process::normalize_amount(&r)).fg(match r.nature {
-            Nature::Credit => Color::Green,
-            Nature::Debit => Color::Red,
-        }));
+        row.add_cell(Cell::new(process::normalize_amount(&r.amount)).fg(
+            if r.amount.is_positive() {
+                Color::Green
+            } else {
+                Color::Red
+            },
+        ));
 
         row
     }
 
-    fn create_total_row(&self) -> Row {
-        let total = process::calculate_total(&self.records);
+    fn create_total_row(total: &Money, col_count: u32) -> Row {
+        if col_count < 2 {
+            panic!("table must have atleast 2 cols")
+        }
 
-        let mut row = vec![
-            Cell::new(""),
-            Cell::new(""),
+        let empty_rows = col_count - 2;
+        let mut row = Row::new();
+
+        for _ in 0..empty_rows {
+            row.add_cell(Cell::new(""));
+        }
+        row.add_cell(
             Cell::new("TOTAL")
                 .add_attributes(vec![Attribute::Bold])
                 .set_alignment(CellAlignment::Right),
-            Cell::new(&total).fg(if total.amount().is_sign_positive() {
-                Color::Green
-            } else {
-                Color::Red
-            }),
-        ];
+        );
 
-        if self.show_matchers {
-            row.insert(0, Cell::new(""));
-        }
-        row.into()
+        row.add_cell(Cell::new(&total).fg(if total.amount().is_sign_positive() {
+            Color::Green
+        } else {
+            Color::Red
+        }));
+
+        row
     }
 }
 
@@ -89,14 +97,17 @@ impl Display for Viewer<'_> {
                     .map(|r| self.record_to_row(r))
                     .collect::<Vec<_>>(),
             )
-            .add_row(self.create_total_row());
+            .add_row(Viewer::create_total_row(
+                &process::calculate_total(&self.records.iter().map(|r| &r.amount).collect()),
+                if self.show_matchers { 5 } else { 4 },
+            ));
 
         table.fmt(f)?;
         write!(f, "\n")?;
 
         let mut table = Table::new();
         let mut totals: Vec<_> = process::group_totals(&self.records).into_iter().collect();
-        totals.sort_by(|a, b| a.1.amount().cmp(b.1.amount()));
+        totals.sort_by(|a, b| a.1.cmp(&b.1));
 
         table
             .load_preset(UTF8_FULL)
@@ -109,7 +120,46 @@ impl Display for Viewer<'_> {
                     .iter()
                     .map(|(k, v)| vec![Cell::new(k), Cell::new(v)])
                     .collect::<Vec<_>>(),
-            );
+            )
+            .add_row(Viewer::create_total_row(
+                &process::calculate_total(&totals.iter().map(|(_k, v)| v).collect()),
+                2,
+            ));
+
+        table.fmt(f)?;
+        write!(f, "\n")?;
+
+        let mut table = Table::new();
+        let mut subs: Vec<_> = process::get_subscriptions(&self.records)
+            .into_iter()
+            .map(|s| Subscription {
+                amount: process::normalize_amount(&s.amount),
+                ..s
+            })
+            .collect();
+        subs.sort_by(|a, b| a.amount.cmp(&b.amount));
+
+        table
+            .load_preset(UTF8_FULL)
+            .apply_modifier(UTF8_ROUND_CORNERS)
+            .apply_modifier(UTF8_SOLID_INNER_BORDERS)
+            .set_content_arrangement(ContentArrangement::Dynamic)
+            .set_header(vec!["Source", "Day", "Amount"])
+            .add_rows(
+                subs.iter()
+                    .map(|s| {
+                        vec![
+                            Cell::new(&s.source),
+                            Cell::new(s.charge_date),
+                            Cell::new(&s.amount),
+                        ]
+                    })
+                    .collect::<Vec<_>>(),
+            )
+            .add_row(Viewer::create_total_row(
+                &process::calculate_total(&subs.iter().map(|s| &s.amount).collect()),
+                3,
+            ));
 
         table.fmt(f)
     }

@@ -24,7 +24,7 @@ struct Args {
         short,
         long,
         value_parser=str::parse::<DateTime<Utc>>,
-        default_value_t=chronoutil::shift_months(Utc::now(), -2),
+        default_value_t=chronoutil::shift_months(Utc::now(), -4),
     )]
     start: DateTime<Utc>,
 

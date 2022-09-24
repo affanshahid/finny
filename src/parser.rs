@@ -1,9 +1,3 @@
-use std::error;
-use std::fmt::Display;
-use std::num::ParseIntError;
-use std::str::FromStr;
-
-use crate::wrapper::Currency;
 use chrono::DateTime;
 use chrono::Local;
 use chrono::ParseError;
@@ -11,15 +5,19 @@ use chrono::TimeZone;
 use chrono::Utc;
 use regex::Captures;
 use regex::Regex;
+use rust_decimal::Decimal;
 use rusty_money::iso;
-use rusty_money::Money;
 use rusty_money::MoneyError;
 use serde::Deserialize;
+use std::error;
+use std::fmt::Display;
+use std::num::ParseIntError;
 
 use crate::config::Config;
 use crate::message::TextMessage;
-use crate::record::Nature;
+use crate::record::Money;
 use crate::record::Record;
+use crate::wrapper::Currency;
 
 #[derive(Debug)]
 pub struct Error(String);
@@ -47,16 +45,17 @@ impl From<ParseError> for Error {
     }
 }
 
-impl From<<Nature as FromStr>::Err> for Error {
-    fn from(error: <Nature as FromStr>::Err) -> Self {
-        Error(format!("error parsing Nature: {}", &error.to_string()))
-    }
-}
-
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
+}
+
+#[derive(Deserialize, Debug)]
+pub enum Nature {
+    #[allow(dead_code)]
+    Credit,
+    Debit,
 }
 
 pub trait ValueParser<T: Clone> {
@@ -104,15 +103,6 @@ impl ValueParser<DateTime<Utc>> for DateTimeParser {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct NatureParser;
-
-impl ValueParser<Nature> for NatureParser {
-    fn parse(&self, val: &str) -> Result<Nature, Error> {
-        Ok(val.parse()?)
-    }
-}
-
-#[derive(Debug, Deserialize)]
 #[serde(tag = "type", content = "config")]
 pub enum Value<T: Clone, R: ValueParser<T>> {
     Fixed(T),
@@ -130,7 +120,6 @@ impl<T: Clone, R: ValueParser<T>> Value<T, R> {
 
 #[derive(Debug, Deserialize)]
 pub struct ValuesConfig {
-    pub nature: Value<Nature, NatureParser>,
     pub account: Value<String, StringParser>,
     pub amount: Value<String, StringParser>,
     pub currency: Value<Currency, CurrencyParser>,
@@ -143,6 +132,7 @@ pub struct Matcher {
     pub id: String,
     #[serde(with = "serde_regex")]
     pub pattern: Regex,
+    pub nature: Nature,
     pub values: ValuesConfig,
 }
 
@@ -171,7 +161,10 @@ impl<'a> RecordParser<'a> {
         match RecordParser::parse_record(&matcher, &captures, msg) {
             Ok(record) => Some(record),
             Err(err) => {
-                println!("error while parsing record: {}", err);
+                println!(
+                    "error while parsing record. message: {}, matcher-id: {}, pattern: {}, : {}",
+                    msg.text, matcher.id, matcher.pattern, err
+                );
                 None
             }
         }
@@ -185,15 +178,28 @@ impl<'a> RecordParser<'a> {
         let values = &matcher.values;
         Ok(Record {
             message_id: msg.id,
-            nature: values.nature.extract(captures)?,
             account: values.account.extract(captures)?,
-            amount: Money::from_str(
-                &values.amount.extract(captures)?,
-                values.currency.extract(captures)?.0,
-            )?,
+            amount: RecordParser::canonical_amount(
+                &Money::from_str(
+                    &values.amount.extract(captures)?,
+                    values.currency.extract(captures)?.0,
+                )?,
+                &matcher.nature,
+            ),
             source: values.source.extract(captures)?,
             time: values.time.extract(captures)?,
             matcher,
         })
+    }
+
+    fn canonical_amount(money: &Money, nature: &Nature) -> Money {
+        Money::from_decimal(
+            money.amount()
+                * match nature {
+                    Nature::Credit => Decimal::ONE,
+                    Nature::Debit => Decimal::NEGATIVE_ONE,
+                },
+            money.currency(),
+        )
     }
 }

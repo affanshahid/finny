@@ -1,10 +1,8 @@
 matchers:
   - id: habib-metro-cash-withdraw
     pattern: 'HABIBMETRO - Alert: (?P<datetime>[0-9-]+ [0-9:]+) (?P<account>.+) Amt (?P<amount>.+) Debited /Switch Withdrawal (?P<location>.+), Avl. Bal .+ CR'
+    nature: Debit
     values:
-      nature:
-        type: Fixed
-        config: Debit
       account:
         type: FromMatch
         config:
@@ -33,10 +31,8 @@ matchers:
 
   - id: js-credit-card-used
     pattern: 'Dear .+, your JS Bank credit card ending with (?P<card>.+) has been used for (?P<currency>[A-Z]+) (?P<amount>.+) at (?P<location>.+) on (?P<datetime>.+ at \d\d:\d\d:\d\d)\.'
+    nature: Debit
     values:
-      nature:
-        type: Fixed
-        config: Debit
       account:
         type: FromMatch
         config:
@@ -67,10 +63,8 @@ matchers:
 
   - id: js-credit-card-online-used
     pattern: 'Dear .+, your JS Bank credit card ending with (?P<card>.+) has been used for (?P<currency>[A-Z]+) (?P<amount>.+) at (?P<location>.+) on (?P<datetime>.+ at \d+)\.'
+    nature: Debit
     values:
-      nature:
-        type: Fixed
-        config: Debit
       account:
         type: FromMatch
         config:
@@ -102,11 +96,9 @@ matchers:
               suffix: ':00'
 
   - id: js-cash-withdrawl
-    pattern: 'Acct. (?P<account>.+) debited by (?P<currency>.+) (?P<amount>.+) due to (?P<reason>.+) at (?P<datetime>.+ hrs on .+).Current Balance: .+'
+    pattern: 'Acct. (?P<account>.+) debited by (?P<currency>.+) (?P<amount>.+) due to (?P<reason>.+) at (?P<datetime>.+ hrs on [\d-]+).Current Balance: .+'
+    nature: Debit
     values:
-      nature:
-        type: Fixed
-        config: Debit
       account:
         type: FromMatch
         config:
@@ -134,3 +126,35 @@ matchers:
           parser:
             type: FormattedDateTime
             config: '%H:%M hrs on %d-%m-%Y'
+
+  - id: js-account-transfer
+    pattern: 'Acct. (?P<account>.+) debited by (?P<currency>.+) (?P<amount>.+) due to (?P<reason>.+) at (?P<datetime>.+ hrs on [\d/]+).Current Balance: .+'
+    nature: Debit
+    values:
+      account:
+        type: FromMatch
+        config:
+          group: account
+          parser: null
+      amount:
+        type: FromMatch
+        config:
+          group: amount
+          parser: null
+      currency:
+        type: FromMatch
+        config:
+          group: currency
+          parser: null
+      source:
+        type: FromMatch
+        config:
+          group: reason
+          parser: null
+      time:
+        type: FromMatch
+        config:
+          group: datetime
+          parser:
+            type: FormattedDateTime
+            config: '%H:%M hrs on %m/%d/%Y'
