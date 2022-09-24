@@ -17,14 +17,50 @@ use crate::record::Money;
 use crate::record::Record;
 use crate::Subscription;
 
-pub struct Viewer<'a> {
-    show_matchers: bool,
-    records: Vec<Record<'a>>,
+fn create_total_row(total: &Money, col_count: usize) -> Row {
+    if col_count < 2 {
+        panic!("table must have atleast 2 cols")
+    }
+
+    let empty_rows = col_count - 2;
+    let mut row = Row::new();
+
+    for _ in 0..empty_rows {
+        row.add_cell(Cell::new(""));
+    }
+    row.add_cell(
+        Cell::new("TOTAL")
+            .add_attributes(vec![Attribute::Bold])
+            .set_alignment(CellAlignment::Right),
+    );
+
+    row.add_cell(Cell::new(&total).fg(if total.amount().is_sign_positive() {
+        Color::Green
+    } else {
+        Color::Red
+    }));
+
+    row
 }
 
-impl Viewer<'_> {
-    pub fn new(records: Vec<Record>, show_matchers: bool) -> Viewer {
-        Viewer {
+fn default_table() -> Table {
+    let mut table = Table::new();
+    table
+        .load_preset(UTF8_FULL)
+        .apply_modifier(UTF8_ROUND_CORNERS)
+        .apply_modifier(UTF8_SOLID_INNER_BORDERS)
+        .set_content_arrangement(ContentArrangement::Dynamic);
+    table
+}
+
+pub struct TransactionsTable<'a> {
+    show_matchers: bool,
+    records: &'a Vec<Record<'a>>,
+}
+
+impl<'a> TransactionsTable<'a> {
+    pub fn new(records: &'a Vec<Record>, show_matchers: bool) -> TransactionsTable<'a> {
+        TransactionsTable {
             records,
             show_matchers,
         }
@@ -48,48 +84,20 @@ impl Viewer<'_> {
 
         row
     }
-
-    fn create_total_row(total: &Money, col_count: u32) -> Row {
-        if col_count < 2 {
-            panic!("table must have atleast 2 cols")
-        }
-
-        let empty_rows = col_count - 2;
-        let mut row = Row::new();
-
-        for _ in 0..empty_rows {
-            row.add_cell(Cell::new(""));
-        }
-        row.add_cell(
-            Cell::new("TOTAL")
-                .add_attributes(vec![Attribute::Bold])
-                .set_alignment(CellAlignment::Right),
-        );
-
-        row.add_cell(Cell::new(&total).fg(if total.amount().is_sign_positive() {
-            Color::Green
-        } else {
-            Color::Red
-        }));
-
-        row
-    }
 }
 
-impl Display for Viewer<'_> {
+impl Display for TransactionsTable<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut table = Table::new();
         let header = if self.show_matchers {
             vec!["ID", "Time", "Pattern", "Reason", "Amount"]
         } else {
             vec!["ID", "Time", "Reason", "Amount"]
         };
 
+        let col_count = header.len();
+
+        let mut table = default_table();
         table
-            .load_preset(UTF8_FULL)
-            .apply_modifier(UTF8_ROUND_CORNERS)
-            .apply_modifier(UTF8_SOLID_INNER_BORDERS)
-            .set_content_arrangement(ContentArrangement::Dynamic)
             .set_header(header)
             .add_rows(
                 self.records
@@ -97,23 +105,32 @@ impl Display for Viewer<'_> {
                     .map(|r| self.record_to_row(r))
                     .collect::<Vec<_>>(),
             )
-            .add_row(Viewer::create_total_row(
+            .add_row(create_total_row(
                 &process::calculate_total(&self.records.iter().map(|r| &r.amount).collect()),
-                if self.show_matchers { 5 } else { 4 },
+                col_count,
             ));
 
-        table.fmt(f)?;
-        write!(f, "\n")?;
+        table.fmt(f)
+    }
+}
 
-        let mut table = Table::new();
+pub struct TotalsTable<'a> {
+    records: &'a Vec<Record<'a>>,
+}
+
+impl<'a> TotalsTable<'a> {
+    pub fn new(records: &'a Vec<Record<'a>>) -> TotalsTable<'a> {
+        TotalsTable { records }
+    }
+}
+
+impl Display for TotalsTable<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut totals: Vec<_> = process::group_totals(&self.records).into_iter().collect();
         totals.sort_by(|a, b| a.1.cmp(&b.1));
 
+        let mut table = default_table();
         table
-            .load_preset(UTF8_FULL)
-            .apply_modifier(UTF8_ROUND_CORNERS)
-            .apply_modifier(UTF8_SOLID_INNER_BORDERS)
-            .set_content_arrangement(ContentArrangement::Dynamic)
             .set_header(vec!["Source", "Total"])
             .add_rows(
                 totals
@@ -121,15 +138,27 @@ impl Display for Viewer<'_> {
                     .map(|(k, v)| vec![Cell::new(k), Cell::new(v)])
                     .collect::<Vec<_>>(),
             )
-            .add_row(Viewer::create_total_row(
+            .add_row(create_total_row(
                 &process::calculate_total(&totals.iter().map(|(_k, v)| v).collect()),
                 2,
             ));
 
-        table.fmt(f)?;
-        write!(f, "\n")?;
+        table.fmt(f)
+    }
+}
 
-        let mut table = Table::new();
+pub struct SubscriptionsTable<'a> {
+    records: &'a Vec<Record<'a>>,
+}
+
+impl<'a> SubscriptionsTable<'a> {
+    pub fn new(records: &'a Vec<Record<'a>>) -> SubscriptionsTable<'a> {
+        SubscriptionsTable { records }
+    }
+}
+
+impl Display for SubscriptionsTable<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut subs: Vec<_> = process::get_subscriptions(&self.records)
             .into_iter()
             .map(|s| Subscription {
@@ -139,11 +168,8 @@ impl Display for Viewer<'_> {
             .collect();
         subs.sort_by(|a, b| a.amount.cmp(&b.amount));
 
+        let mut table = default_table();
         table
-            .load_preset(UTF8_FULL)
-            .apply_modifier(UTF8_ROUND_CORNERS)
-            .apply_modifier(UTF8_SOLID_INNER_BORDERS)
-            .set_content_arrangement(ContentArrangement::Dynamic)
             .set_header(vec!["Source", "Day", "Amount"])
             .add_rows(
                 subs.iter()
@@ -156,7 +182,7 @@ impl Display for Viewer<'_> {
                     })
                     .collect::<Vec<_>>(),
             )
-            .add_row(Viewer::create_total_row(
+            .add_row(create_total_row(
                 &process::calculate_total(&subs.iter().map(|s| &s.amount).collect()),
                 3,
             ));

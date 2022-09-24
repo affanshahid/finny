@@ -4,7 +4,9 @@ use clap::Parser;
 use finny::message::TextMessage;
 use finny::process::filter_out_sources;
 use finny::record::Record;
-use finny::viewer::Viewer;
+use finny::tables::SubscriptionsTable;
+use finny::tables::TotalsTable;
+use finny::tables::TransactionsTable;
 use lazy_static::lazy_static;
 
 lazy_static! {
@@ -47,9 +49,24 @@ struct Args {
     #[clap(long, value_parser, default_values_t=DEFAULT_EXCLUDE_SOURCES.iter())]
     exclude_sources: Vec<String>,
 
-    /// Show pattern id when displaying transactions
-    #[clap(short = 'p', long, value_parser, default_value_t = false)]
-    show_matcher: bool,
+    #[clap(subcommand)]
+    subcommand: Command,
+}
+
+#[derive(Parser, Debug)]
+enum Command {
+    /// Shows a table of transactions
+    Transactions {
+        /// Show pattern id when displaying transactions
+        #[clap(short = 'p', long, value_parser, action)]
+        show_matcher: bool,
+    },
+
+    /// Shows aggregated totals for each source
+    Totals,
+
+    /// Shows detected subscriptions from your data
+    Subscriptions,
 }
 
 fn main() {
@@ -63,6 +80,19 @@ fn main() {
 
     let mut records = Record::parse_messages(&msgs);
     records = filter_out_sources(&records, &args.exclude_sources);
-    let v = Viewer::new(records, args.show_matcher);
-    println!("{}", v);
+
+    match args.subcommand {
+        Command::Transactions { show_matcher } => {
+            let v = TransactionsTable::new(&records, show_matcher);
+            println!("{}", v);
+        }
+        Command::Totals => {
+            let v = TotalsTable::new(&records);
+            println!("{}", v);
+        }
+        Command::Subscriptions => {
+            let v = SubscriptionsTable::new(&records);
+            println!("{}", v);
+        }
+    }
 }
