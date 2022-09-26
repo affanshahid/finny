@@ -94,9 +94,9 @@ pub fn group<'a>(records: &Vec<Record<'a>>) -> HashMap<String, Vec<Record<'a>>> 
     let mut map = HashMap::new();
 
     for record in records {
-        match map.get_mut(&record.source) {
+        match map.get_mut(&record.source.to_uppercase()) {
             None => {
-                map.insert(record.source.clone(), vec![record.clone()]);
+                map.insert(record.source.to_uppercase(), vec![record.clone()]);
             }
             Some(list) => list.push(record.clone()),
         };
@@ -138,22 +138,22 @@ pub fn get_subscriptions(records: &Vec<Record>) -> Vec<Subscription> {
         true
     });
 
-    // filter out groups with records that don't have the same amount
-    let groups = groups.filter(|(_k, v)| {
-        for i in 1..v.len() {
-            if v[i].amount != v[i - 1].amount {
-                return false;
-            }
-        }
+    // // filter out groups with records that don't have the same amount
+    // let groups = groups.filter(|(_k, v)| {
+    //     for i in 1..v.len() {
+    //         if v[i].amount != v[i - 1].amount {
+    //             return false;
+    //         }
+    //     }
 
-        true
-    });
+    //     true
+    // });
 
     groups
         .map(|(k, v)| Subscription {
             source: k.clone(),
-            amount: v[0].amount.clone(),
-            charge_date: v[0].time.date().day(),
+            amount: v.last().unwrap().amount.clone(),
+            charge_date: v.last().unwrap().time.date().day(),
         })
         .collect()
 }
